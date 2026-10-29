@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/ui/modal";
 import { Toggle, Input } from "@/components/ui/form";
 import { Alert } from "@/components/ui/feedback";
 
-const SUPPORTED_VOICE_PROVIDERS = new Set(["Minimax", "OpenAI"]);
+const SUPPORTED_VOICE_PROVIDERS = new Set(["Minimax", "OpenAI", "FishAudio"]);
 const MINIMAX_BASE_URL_OPTIONS = [
     { id: "cn", label: "国内版", baseUrl: "https://api.minimaxi.com/v1" },
     { id: "global", label: "海外版", baseUrl: "https://api.minimax.io/v1" },
@@ -28,9 +28,12 @@ const MINIMAX_PITCH_STEP = 1;
 const DEFAULT_SPEECH_PITCH = 0;
 const VOICE_PROVIDER_OPTIONS = [
     { value: "OpenAI", label: "OpenAI TTS" },
+    { value: "FishAudio", label: "Fish Audio" },
     { value: "MinimaxCN", label: "Minimax 语音国内版" },
     { value: "MinimaxGlobal", label: "Minimax 语音海外版" },
 ];
+const DEFAULT_FISH_MODEL = "s2.1-pro-free";
+const DEFAULT_FISH_REFERENCE_ID = "aadb8e3aa2df4f8abdfec926a2c09d6a";
 
 const DEFAULT_VOICE_CONFIGS: VoiceApiConfig[] = [
     {
@@ -222,6 +225,7 @@ function makeCloneVoiceId(config: VoiceApiConfig): string {
 
 function providerSelectValue(config: VoiceApiConfig): string {
     if (config.provider === "OpenAI") return "OpenAI";
+    if (config.provider === "FishAudio") return "FishAudio";
     return config.baseUrl === GLOBAL_MINIMAX_BASE_URL ? "MinimaxGlobal" : "MinimaxCN";
 }
 
@@ -304,6 +308,16 @@ export function VoiceSettings() {
 
     const updateProvider = (id: string, providerOption: string) => {
         const current = configs.find(c => c.id === id);
+        if (providerOption === "FishAudio") {
+            updateConfig(id, {
+                provider: "FishAudio",
+                model: DEFAULT_FISH_MODEL,
+                defaultVoice: DEFAULT_FISH_REFERENCE_ID,
+            });
+            setManualModelIds(prev => ({ ...prev, [id]: false }));
+            setManualVoiceIds(prev => ({ ...prev, [id]: false }));
+            return;
+        }
         if (providerOption === "OpenAI") {
             updateConfig(id, {
                 provider: "OpenAI",
@@ -529,9 +543,11 @@ export function VoiceSettings() {
         setPlayingVoiceId(config.id);
 
         try {
-            const previewText = config.provider === "Minimax" && config.languageBoost
-                ? MINIMAX_PREVIEW_TEXT[config.languageBoost] || "你好，很高兴认识你。这是一段语音试听。"
-                : "你好，我现在是" + (config.defaultVoice || "默认") + "音色。很高兴认识你。";
+            const previewText = config.provider === "FishAudio"
+                ? "你好，很高兴认识你。这是一段 Fish Audio 试听。"
+                : config.provider === "Minimax" && config.languageBoost
+                    ? MINIMAX_PREVIEW_TEXT[config.languageBoost] || "你好，很高兴认识你。这是一段语音试听。"
+                    : "你好，我现在是" + (config.defaultVoice || "默认") + "音色。很高兴认识你。";
             const blob = await synthesizeSpeech(
                 previewText,
                 config,
@@ -668,15 +684,21 @@ export function VoiceSettings() {
                                             </select>
                                         </div>
 
-                                        <div className="flex flex-col gap-1">
-                                            <label className="menu-desc ml-1">API Key</label>
-                                            <Input
-                                                type="password"
-                                                value={config.apiKey}
-                                                onChange={(e) => updateConfig(config.id, { apiKey: e.target.value })}
-                                                placeholder="输入密钥..."
-                                            />
-                                        </div>
+                                        {config.provider === "FishAudio" ? (
+                                            <div className="rounded-2xl bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
+                                                Fish Audio 密钥只从服务端环境变量读取，不会保存在浏览器。请在 Vercel 配置 FISH_API_KEY、FISH_REFERENCE_ID 和 FISH_MODEL。
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col gap-1">
+                                                <label className="menu-desc ml-1">API Key</label>
+                                                <Input
+                                                    type="password"
+                                                    value={config.apiKey}
+                                                    onChange={(e) => updateConfig(config.id, { apiKey: e.target.value })}
+                                                    placeholder="输入密钥..."
+                                                />
+                                            </div>
+                                        )}
                                         {config.provider === "OpenAI" && (
                                             <>
                                                 <div className="flex flex-col gap-1">
@@ -841,6 +863,22 @@ export function VoiceSettings() {
                                             </>
                                         )}
 
+                                        {config.provider === "FishAudio" ? (
+                                            <div className="flex items-center justify-between rounded-2xl bg-gray-50 p-3">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="menu-label font-medium">Fish Audio 音色</span>
+                                                    <span className="menu-desc">使用 Vercel 中配置的参考音色和模型</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => togglePreview(config)}
+                                                    className="ui-icon-btn"
+                                                    data-active={playingVoiceId === config.id}
+                                                    aria-label="试听 Fish Audio"
+                                                >
+                                                    {playingVoiceId === config.id ? <Pause size={20} /> : <Play size={20} />}
+                                                </button>
+                                            </div>
+                                        ) : (
                                         <div className="flex flex-col gap-1">
                                             <label className="menu-desc ml-1">默认音色 (Default Voice) 或 自定义 Voice ID</label>
                                             <div className="flex flex-col gap-2">
@@ -925,6 +963,7 @@ export function VoiceSettings() {
                                                 )}
                                             </div>
                                         </div>
+                                        )}
 
                                         <div className="ui-toggle-row">
                                             <span className="menu-label font-medium">启用语音合成 (TTS)</span>

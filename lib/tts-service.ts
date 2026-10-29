@@ -25,6 +25,7 @@ export function resolveVoiceConfig(characterId: string, appId?: ContentAppId): V
  * Supported providers:
  * - Minimax: REST API → hex-encoded mp3
  * - OpenAI: REST API → binary audio blob
+ * - Fish Audio: server-side Vercel proxy → binary audio blob
  */
 export async function synthesizeSpeech(
     text: string,
@@ -41,6 +42,10 @@ export async function synthesizeSpeech(
 
     if (provider === "OpenAI") {
         return synthesizeOpenAI(text, voiceConfig);
+    }
+
+    if (provider === "FishAudio") {
+        return synthesizeFishAudio(text);
     }
 
     return null;
@@ -172,6 +177,22 @@ async function synthesizeOpenAI(text: string, config: VoiceApiConfig): Promise<B
 
     const blob = await response.blob();
     return new Blob([await blob.arrayBuffer()], { type: "audio/mpeg" });
+}
+
+async function synthesizeFishAudio(text: string): Promise<Blob> {
+    const response = await fetchWithTimeout("/api/voice/fish-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({})) as { error?: string; message?: string };
+        throw new Error(error.message || error.error || `Fish Audio 请求失败 (${response.status})`);
+    }
+
+    const audio = await response.blob();
+    return new Blob([await audio.arrayBuffer()], { type: response.headers.get("content-type") || "audio/mpeg" });
 }
 
 // ── iOS audio playback that coexists with speech recognition ──────────
