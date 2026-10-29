@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 const MAX_TEXT_LENGTH = 5000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 20;
+// ponytail: per-instance limit only; use shared storage for a global quota guard.
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 
 function consumeRateLimit(ip: string): number {

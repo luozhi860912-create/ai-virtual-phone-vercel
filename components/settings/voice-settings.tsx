@@ -686,7 +686,7 @@ export function VoiceSettings() {
 
                                         {config.provider === "FishAudio" ? (
                                             <div className="rounded-2xl bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
-                                                Fish Audio 密钥只从服务端环境变量读取，不会保存在浏览器。请在 Vercel 配置 FISH_API_KEY、FISH_REFERENCE_ID 和 FISH_MODEL。
+                                                Fish Audio 密钥只从服务端环境变量读取，不会保存在浏览器。公开站点的访客会共用该额度；若只给自己使用，请先启用 Vercel 访问保护。请在 Vercel 配置 FISH_API_KEY、FISH_REFERENCE_ID 和 FISH_MODEL。
                                             </div>
                                         ) : (
                                             <div className="flex flex-col gap-1">
