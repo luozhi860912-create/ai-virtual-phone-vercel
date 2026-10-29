@@ -684,20 +684,37 @@ export function VoiceSettings() {
                                             </select>
                                         </div>
 
-                                        {config.provider === "FishAudio" ? (
-                                            <div className="rounded-2xl bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
-                                                Fish Audio 密钥只从服务端环境变量读取，不会保存在浏览器。公开站点的访客会共用该额度；若只给自己使用，请先启用 Vercel 访问保护。请在 Vercel 配置 FISH_API_KEY、FISH_REFERENCE_ID 和 FISH_MODEL。
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col gap-1">
-                                                <label className="menu-desc ml-1">API Key</label>
-                                                <Input
-                                                    type="password"
-                                                    value={config.apiKey}
-                                                    onChange={(e) => updateConfig(config.id, { apiKey: e.target.value })}
-                                                    placeholder="输入密钥..."
-                                                />
-                                            </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="menu-desc ml-1">API Key</label>
+                                            <Input
+                                                type="password"
+                                                value={config.apiKey}
+                                                onChange={(e) => updateConfig(config.id, { apiKey: e.target.value })}
+                                                placeholder="输入密钥..."
+                                            />
+                                        </div>
+                                        {config.provider === "FishAudio" && (
+                                            <>
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="menu-desc ml-1">参考音色 ID (Reference ID)</label>
+                                                    <Input
+                                                        type="text"
+                                                        value={config.defaultVoice || ""}
+                                                        onChange={(e) => updateConfig(config.id, { defaultVoice: e.target.value })}
+                                                        placeholder={DEFAULT_FISH_REFERENCE_ID}
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="menu-desc ml-1">语音模型 (Model)</label>
+                                                    <Input
+                                                        type="text"
+                                                        value={config.model || ""}
+                                                        onChange={(e) => updateConfig(config.id, { model: e.target.value })}
+                                                        placeholder={DEFAULT_FISH_MODEL}
+                                                    />
+                                                </div>
+                                                <span className="menu-desc ml-1">配置保存在当前浏览器中；合成时由本站接口转发 Fish Audio 请求。</span>
+                                            </>
                                         )}
                                         {config.provider === "OpenAI" && (
                                             <>
@@ -867,7 +884,7 @@ export function VoiceSettings() {
                                             <div className="flex items-center justify-between rounded-2xl bg-gray-50 p-3">
                                                 <div className="flex flex-col gap-1">
                                                     <span className="menu-label font-medium">Fish Audio 音色</span>
-                                                    <span className="menu-desc">使用 Vercel 中配置的参考音色和模型</span>
+                                                    <span className="menu-desc">{config.defaultVoice || "请填写参考音色 ID"} · {config.model || DEFAULT_FISH_MODEL}</span>
                                                 </div>
                                                 <button
                                                     onClick={() => togglePreview(config)}

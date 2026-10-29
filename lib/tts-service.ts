@@ -25,7 +25,7 @@ export function resolveVoiceConfig(characterId: string, appId?: ContentAppId): V
  * Supported providers:
  * - Minimax: REST API → hex-encoded mp3
  * - OpenAI: REST API → binary audio blob
- * - Fish Audio: server-side Vercel proxy → binary audio blob
+ * - Fish Audio: same-origin API proxy using the user's saved browser config → binary audio blob
  */
 export async function synthesizeSpeech(
     text: string,
@@ -45,7 +45,7 @@ export async function synthesizeSpeech(
     }
 
     if (provider === "FishAudio") {
-        return synthesizeFishAudio(text);
+        return synthesizeFishAudio(text, voiceConfig);
     }
 
     return null;
@@ -179,11 +179,21 @@ async function synthesizeOpenAI(text: string, config: VoiceApiConfig): Promise<B
     return new Blob([await blob.arrayBuffer()], { type: "audio/mpeg" });
 }
 
-async function synthesizeFishAudio(text: string): Promise<Blob> {
+async function synthesizeFishAudio(text: string, config: VoiceApiConfig): Promise<Blob> {
+    if (!config.apiKey?.trim()) throw new Error("Fish Audio API Key 未配置");
+    if (!config.defaultVoice?.trim()) throw new Error("Fish Audio 参考音色 ID 未配置");
+
     const response = await fetchWithTimeout("/api/voice/fish-audio", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        headers: {
+            Authorization: `Bearer ${config.apiKey.trim()}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            text,
+            referenceId: config.defaultVoice.trim(),
+            model: config.model?.trim() || "s2.1-pro-free",
+        }),
     });
 
     if (!response.ok) {

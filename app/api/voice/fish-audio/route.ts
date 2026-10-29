@@ -43,14 +43,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Fish Audio 请求来源无效。" }, { status: 403, headers: { "Cache-Control": "no-store" } });
   }
 
-  const apiKey = process.env.FISH_API_KEY?.trim();
-  const referenceId = process.env.FISH_REFERENCE_ID?.trim();
-  const model = process.env.FISH_MODEL?.trim() || "s2.1-pro-free";
-  if (!apiKey || !referenceId) {
-    return NextResponse.json(
-      { error: "Fish Audio 尚未配置：请在 Vercel 环境变量中设置 FISH_API_KEY 和 FISH_REFERENCE_ID。" },
-      { status: 503, headers: { "Cache-Control": "no-store" } },
-    );
+  const authorization = request.headers.get("authorization") || "";
+  const apiKey = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  if (!apiKey) {
+    return NextResponse.json({ error: "请先填写 Fish Audio API Key。" }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
   const contentLength = Number(request.headers.get("content-length") || 0);
@@ -66,9 +62,9 @@ export async function POST(request: Request) {
     );
   }
 
-  let payload: { text?: unknown };
+  let payload: { text?: unknown; referenceId?: unknown; model?: unknown };
   try {
-    payload = await request.json() as { text?: unknown };
+    payload = await request.json() as { text?: unknown; referenceId?: unknown; model?: unknown };
   } catch {
     return NextResponse.json({ error: "请求内容不是有效 JSON。" }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
@@ -80,6 +76,12 @@ export async function POST(request: Request) {
   if ([...text].length > MAX_TEXT_LENGTH) {
     return NextResponse.json({ error: `朗读文本不能超过 ${MAX_TEXT_LENGTH} 个字符。` }, { status: 413, headers: { "Cache-Control": "no-store" } });
   }
+
+  const referenceId = typeof payload.referenceId === "string" ? payload.referenceId.trim() : "";
+  if (!referenceId) {
+    return NextResponse.json({ error: "请先填写 Fish Audio 参考音色 ID。" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+  const model = typeof payload.model === "string" && payload.model.trim() ? payload.model.trim() : "s2.1-pro-free";
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 110_000);
