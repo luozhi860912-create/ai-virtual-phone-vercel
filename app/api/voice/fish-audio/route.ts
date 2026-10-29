@@ -78,9 +78,6 @@ export async function POST(request: Request) {
   }
 
   const referenceId = typeof payload.referenceId === "string" ? payload.referenceId.trim() : "";
-  if (!referenceId) {
-    return NextResponse.json({ error: "请先填写 Fish Audio 参考音色 ID。" }, { status: 400, headers: { "Cache-Control": "no-store" } });
-  }
   const model = typeof payload.model === "string" && payload.model.trim() ? payload.model.trim() : "s2.1-pro-free";
 
   const controller = new AbortController();
@@ -93,7 +90,12 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
         model,
       },
-      body: JSON.stringify({ text, reference_id: referenceId, format: "mp3" }),
+      body: JSON.stringify({
+        text,
+        format: "mp3",
+        mp3_bitrate: 128,
+        ...(referenceId ? { reference_id: referenceId } : {}),
+      }),
       cache: "no-store",
       signal: controller.signal,
     });
@@ -105,8 +107,11 @@ export async function POST(request: Request) {
         const error = JSON.parse(responseText) as { message?: string; reason?: string };
         detail = error.message || error.reason || detail;
       } catch { /* Keep the upstream text for non-JSON errors. */ }
+      const message = /reference not found/i.test(detail)
+        ? "参考音色 ID 未找到，或当前 API Key 所属账号无法访问该音色。请核对 API Key 与参考音色 ID 是否属于同一 Fish Audio 账号；也可清空参考音色 ID 后重试。"
+        : `Fish Audio 请求失败 (${upstream.status})：${detail}`;
       return NextResponse.json(
-        { error: `Fish Audio 请求失败 (${upstream.status})${detail ? `：${detail}` : ""}` },
+        { error: message },
         { status: 502, headers: { "Cache-Control": "no-store" } },
       );
     }

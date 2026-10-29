@@ -713,7 +713,7 @@ export function VoiceSettings() {
                                                         placeholder={DEFAULT_FISH_MODEL}
                                                     />
                                                 </div>
-                                                <span className="menu-desc ml-1">配置保存在当前浏览器中；合成时由本站接口转发 Fish Audio 请求。</span>
+                                                <span className="menu-desc ml-1">API Key 和参考音色 ID 应属于同一账号；留空会省略 reference_id。配置保存在当前浏览器，合成请求由本站接口转发。</span>
                                             </>
                                         )}
                                         {config.provider === "OpenAI" && (
@@ -884,7 +884,7 @@ export function VoiceSettings() {
                                             <div className="flex items-center justify-between rounded-2xl bg-gray-50 p-3">
                                                 <div className="flex flex-col gap-1">
                                                     <span className="menu-label font-medium">Fish Audio 音色</span>
-                                                    <span className="menu-desc">{config.defaultVoice || "请填写参考音色 ID"} · {config.model || DEFAULT_FISH_MODEL}</span>
+                                                    <span className="menu-desc">{config.defaultVoice || "未指定参考音色"} · {config.model || DEFAULT_FISH_MODEL}</span>
                                                 </div>
                                                 <button
                                                     onClick={() => togglePreview(config)}

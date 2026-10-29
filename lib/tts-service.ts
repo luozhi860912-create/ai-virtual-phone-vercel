@@ -181,7 +181,6 @@ async function synthesizeOpenAI(text: string, config: VoiceApiConfig): Promise<B
 
 async function synthesizeFishAudio(text: string, config: VoiceApiConfig): Promise<Blob> {
     if (!config.apiKey?.trim()) throw new Error("Fish Audio API Key 未配置");
-    if (!config.defaultVoice?.trim()) throw new Error("Fish Audio 参考音色 ID 未配置");
 
     const response = await fetchWithTimeout("/api/voice/fish-audio", {
         method: "POST",
@@ -191,7 +190,7 @@ async function synthesizeFishAudio(text: string, config: VoiceApiConfig): Promis
         },
         body: JSON.stringify({
             text,
-            referenceId: config.defaultVoice.trim(),
+            referenceId: config.defaultVoice?.trim() || "",
             model: config.model?.trim() || "s2.1-pro-free",
         }),
     });
